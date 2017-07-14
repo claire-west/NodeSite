@@ -1,0 +1,8 @@
+{
+    "name": "Claire West Node to MSSQL",
+    "description": "An HTTP to ODBC node.js application",
+    "repository": "https://github.com/claire-west/NodeSite",
+    "logo": "https://cdn.rawgit.com/heroku/node-js-getting-started/master/public/node.svg",
+    "keywords": ["node"],
+    "image": "heroku/nodejs"
+}
