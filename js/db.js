@@ -10,8 +10,8 @@ const config = {
 };
 
 const db = module.exports = new sql.ConnectionPool(config);
-
-var value = 'outreach';
-db.connect().catch(err => {
+db.connect().then(() => {
+    console.log('Connected to SQL Server');
+}).catch(err => {
     console.log(err);
 });
