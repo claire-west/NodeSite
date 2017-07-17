@@ -31,7 +31,7 @@ var getYourObjects = function(meta, userId) {
 };
 
 var getPublicObjects = function(meta, user) {
-    var userId = user ? user.id : '';
+    var userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
     var email = user ? user.email : '';
 
     var promise = deferred();
@@ -68,7 +68,7 @@ var getPublicObjects = function(meta, user) {
 };
 
 var getUserObjects = function(meta, targetUser, user) {
-    var userId = user ? user.id : '';
+    var userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
     var email = user ? user.email : '';
 
     var promise = deferred();
@@ -105,8 +105,27 @@ var getUserObjects = function(meta, targetUser, user) {
     return promise;
 };
 
+var combineLines = function(lines) {
+    var objects = [];
+    var lineZero = null;
+
+    for (var i = 0; i < lines.length; i++) {
+        if (lines[i].Line === 0) {
+            if (lineZero) {
+                objects.push(lineZero);
+            }
+            lineZero = lines[i];
+            lineZero.Id = lineZero.Id.toLocaleLowerCase();
+            delete lineZero.Line;
+        }
+        lineZero.Text += lines[i].Text;
+    }
+
+    return objects;
+};
+
 var getJsonObject = function(meta, id, user) {
-    var userId = user ? user.id : '';
+    var userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
     var email = user ? user.email : '';
 
     var promise = deferred();
@@ -124,16 +143,11 @@ var getJsonObject = function(meta, id, user) {
                        AND ( Value = ${email} OR Value = '*' )
                        AND Meta = 'allowAccessBy'
                 )
-               );
+               )
+         ORDER BY Line;
     `.then(result => {
         if (result.recordset.length) {
-            var lines = result.recordset;
-            for (var i = 1; i < lines.length; i++) {
-                lines[0].Text += lines[i].Text;
-            }
-            lines[0].Id = lines[0].Id.toLocaleLowerCase();
-            delete lines[0].Line;
-            promise.resolve(lines[0]);
+            promise.resolve(combineLines(result.recordset)[0]);
         } else {
             promise.reject(404);
         }
@@ -267,6 +281,59 @@ var deleteObject = function(meta, id, userId) {
     });
     return promise;
 };
+
+getResources = function(suffix, forUser, user) {
+    // Turn any dash-delmited suffix into a proper resource meta string
+    var filterOutEmpty = function(val) { return val; };
+    var meta = ['resource'].concat(suffix.split('-')).filter(filterOutEmpty).join('-') + '%';
+    forUser = forUser || null;
+
+    var userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
+    var email = user ? user.email : '';
+
+    var promise = deferred();
+    db.query`
+        SELECT *
+          FROM JsonObject
+         WHERE Meta LIKE ${meta}
+           AND ( UserId = ${userId}
+                OR "Public" = 1
+                OR EXISTS (
+                    SELECT 1
+                      FROM KeyValue
+                     WHERE "Key" = Id
+                       AND ( Value = ${email} OR Value = '*' )
+                       AND Meta = 'allowAccessBy'
+                )
+               )
+           AND ( ${forUser} IS NULL OR UserId = ${forUser} )
+         ORDER BY Label, Line;
+    `.then(result => {
+        if (result.recordset.length) {
+            promise.resolve(combineLines(result.recordset));
+        } else {
+            promise.reject(404);
+        }
+    }).catch(err => {
+        console.log(err)
+        promise.reject(500, err);
+    });
+    return promise;
+};
+
+var onGetResources = function(req, res) {
+    var suffix = req.params.suffix;
+    var forUser = req.params.forUser;
+
+    getResources(suffix, forUser, req.user).promise(function(result) {
+        res.send(JSON.stringify(result));
+    }, function(status, err) {
+        res.status(status).send(JSON.stringify(err));
+    });
+};
+
+router.get('/resources/:suffix', onGetResources);
+router.get('/resources/:suffix/:forUser', onGetResources);
 
 router.get('/:meta', function(req, res) {
     if (!req.user) {
