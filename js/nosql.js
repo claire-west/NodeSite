@@ -283,13 +283,19 @@ var deleteObject = function(meta, id, userId) {
 };
 
 getResources = function(suffix, forUser, user) {
-    // Turn any dash-delmited suffix into a proper resource meta string
-    var filterOutEmpty = function(val) { return val; };
-    var meta = ['resource'].concat(suffix.split('-')).filter(filterOutEmpty).join('-') + '%';
-    forUser = forUser || null;
-
     var userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
     var email = user ? user.email : '';
+
+    var meta;
+    // Turn any dash-delmited suffix into a proper resource meta string
+    if (suffix) {
+        var filterOutEmpty = function(val) { return val; };
+        meta = ['resource'].concat(suffix.split('-')).filter(filterOutEmpty).join('-') + '%';
+        forUser = forUser || null;
+    } else {
+        meta = 'resource%';
+        forUser = userId;
+    }
 
     var promise = deferred();
     db.query`
@@ -332,6 +338,7 @@ var onGetResources = function(req, res) {
     });
 };
 
+router.get('/resources', onGetResources);
 router.get('/resources/:suffix', onGetResources);
 router.get('/resources/:suffix/:forUser', onGetResources);
 
