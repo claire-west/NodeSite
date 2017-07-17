@@ -111,14 +111,13 @@ var combineLines = function(lines) {
 
     for (var i = 0; i < lines.length; i++) {
         if (lines[i].Line === 0) {
-            if (lineZero) {
-                objects.push(lineZero);
-            }
             lineZero = lines[i];
             lineZero.Id = lineZero.Id.toLocaleLowerCase();
             delete lineZero.Line;
+            objects.push(lineZero);
+        } else {
+            lineZero.Text += lines[i].Text;
         }
-        lineZero.Text += lines[i].Text;
     }
 
     return objects;
@@ -147,7 +146,8 @@ var getJsonObject = function(meta, id, user) {
          ORDER BY Line;
     `.then(result => {
         if (result.recordset.length) {
-            promise.resolve(combineLines(result.recordset)[0]);
+            var object = combineLines(result.recordset)[0];
+            promise.resolve(object);
         } else {
             promise.reject(404);
         }
