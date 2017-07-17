@@ -16,12 +16,12 @@ var auth = module.exports = {
                 return next();
             }
 
-            if (!req.cookies['google-auth-token'] && !req.headers['auth']) {
+            const token = req.cookies['google-auth-token'] || req.headers['auth'];
+            if (!token) {
                 req.user = null;
                 return next();
             }
 
-            const token = req.cookies['google-auth-token'] || req.headers['auth'];
             auth.verify(token).promise(function(info) {
                 req.session['google-auth-info'] = info;
                 req.user = info;
