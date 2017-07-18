@@ -44,10 +44,9 @@ var getPublicObjects = function(meta, user) {
            AND ( "Public" = 1
                 OR EXISTS (
                     SELECT 1
-                      FROM KeyValue
-                     WHERE "Key" = Id
-                       AND ( Value = ${email} OR Value = '*' )
-                       AND Meta = 'allowAccessBy'
+                      FROM Permissions
+                     WHERE object = Id
+                       AND ( identifier = ${email} OR identifier = '*' )
                 )
                )
          ORDER BY Label;
@@ -82,10 +81,9 @@ var getUserObjects = function(meta, targetUser, user) {
                 OR "Public" = 1
                 OR EXISTS (
                     SELECT 1
-                      FROM KeyValue
-                     WHERE "Key" = Id
-                       AND ( Value = ${email} OR Value = '*' )
-                       AND Meta = 'allowAccessBy'
+                      FROM Permissions
+                     WHERE object = Id
+                       AND ( identifier = ${email} OR identifier = '*' )
                 )
                )
          ORDER BY Label;
@@ -137,10 +135,9 @@ var getJsonObject = function(meta, id, user) {
                 OR "Public" = 1
                 OR EXISTS (
                     SELECT 1
-                      FROM KeyValue
-                     WHERE "Key" = ${id}
-                       AND ( Value = ${email} OR Value = '*' )
-                       AND Meta = 'allowAccessBy'
+                      FROM Permissions
+                     WHERE object = Id
+                       AND ( identifier = ${email} OR identifier = '*' )
                 )
                )
          ORDER BY Line;
