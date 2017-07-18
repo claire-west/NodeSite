@@ -274,7 +274,11 @@ var deleteObject = function(meta, id, userId) {
 };
 
 getResources = function(suffix, forUser, user) {
+<<<<<<< HEAD
     var userId = user ? user.id : '';
+=======
+    var userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
+>>>>>>> master
     var email = user ? user.email : '';
 
     var meta;
