@@ -19,10 +19,8 @@ var getYourObjects = function(meta, userId) {
             for (var i = 0; i < result.recordset.length; i++) {
                 result.recordset[i].Id = result.recordset[i].Id.toLocaleLowerCase();
             }
-            promise.resolve(result.recordset);
-        } else {
-            promise.reject(404);
         }
+        promise.resolve(result.recordset);
     }).catch(err => {
         console.log(err)
         promise.reject(500, err);
@@ -31,7 +29,7 @@ var getYourObjects = function(meta, userId) {
 };
 
 var getPublicObjects = function(meta, user) {
-    var userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
+    var userId = user ? user.id : '';
     var email = user ? user.email : '';
 
     var promise = deferred();
@@ -55,10 +53,8 @@ var getPublicObjects = function(meta, user) {
             for (var i = 0; i < result.recordset.length; i++) {
                 result.recordset[i].Id = result.recordset[i].Id.toLocaleLowerCase();
             }
-            promise.resolve(result.recordset);
-        } else {
-            promise.reject(404);
         }
+        promise.resolve(result.recordset);
     }).catch(err => {
         console.log(err)
         promise.reject(500, err);
@@ -67,7 +63,7 @@ var getPublicObjects = function(meta, user) {
 };
 
 var getUserObjects = function(meta, targetUser, user) {
-    var userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
+    var userId = user ? user.id : '';
     var email = user ? user.email : '';
 
     var promise = deferred();
@@ -92,10 +88,8 @@ var getUserObjects = function(meta, targetUser, user) {
             for (var i = 0; i < result.recordset.length; i++) {
                 result.recordset[i].Id = result.recordset[i].Id.toLocaleLowerCase();
             }
-            promise.resolve(result.recordset);
-        } else {
-            promise.reject(404);
         }
+        promise.resolve(result.recordset);
     }).catch(err => {
         console.log(err)
         promise.reject(500, err);
@@ -122,7 +116,7 @@ var combineLines = function(lines) {
 };
 
 var getJsonObject = function(meta, id, user) {
-    var userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
+    var userId = user ? user.id : '';
     var email = user ? user.email : '';
 
     var promise = deferred();
@@ -280,7 +274,7 @@ var deleteObject = function(meta, id, userId) {
 };
 
 getResources = function(suffix, forUser, user) {
-    var userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
+    var userId = user ? user.id : '';
     var email = user ? user.email : '';
 
     var meta;
@@ -303,10 +297,9 @@ getResources = function(suffix, forUser, user) {
                 OR "Public" = 1
                 OR EXISTS (
                     SELECT 1
-                      FROM KeyValue
-                     WHERE "Key" = Id
-                       AND ( Value = ${email} OR Value = '*' )
-                       AND Meta = 'allowAccessBy'
+                      FROM Permissions
+                     WHERE object = Id
+                       AND ( identifier = ${email} OR identifier = '*' )
                 )
                )
            AND ( ${forUser} IS NULL OR UserId = ${forUser} )
@@ -315,7 +308,7 @@ getResources = function(suffix, forUser, user) {
         if (result.recordset.length) {
             promise.resolve(combineLines(result.recordset));
         } else {
-            promise.reject(404);
+            promise.resolve([]);
         }
     }).catch(err => {
         console.log(err)
@@ -338,6 +331,8 @@ var onGetResources = function(req, res) {
 router.get('/resources', onGetResources);
 router.get('/resources/:suffix', onGetResources);
 router.get('/resources/:suffix/:forUser', onGetResources);
+
+router.post('')
 
 router.get('/:meta', function(req, res) {
     if (!req.user) {
@@ -424,6 +419,118 @@ router.delete('/:meta/:id', function(req, res) {
     var userId = req.user.id;
 
     deleteObject(meta, id, userId).promise(function(result) {
+        res.send(JSON.stringify(result));
+    }, function(status, err) {
+        res.status(status).send(JSON.stringify(err));
+    });
+});
+
+var getRoles = function(meta, id, userId) {
+    var promise = deferred();
+    db.query`
+        SELECT DISTINCT role
+          FROM Permissions
+         WHERE role LIKE ${userId} + ':%'
+           AND object = ${id}
+         ORDER BY role;
+    `.then(result => {
+        var roles = [];
+        for (var i = 0; i < result.recordset.length; i++) {
+            roles.push(result.recordset[i].role.split(':')[1]);
+        }
+        promise.resolve(roles.sort(function (a, b) {
+            return a.toLowerCase().localeCompare(b.toLowerCase());
+        }));
+    }).catch(err => {
+        console.log(err)
+        promise.reject(500, err);
+    });
+    return promise;
+};
+
+var addRole = function(meta, id, userId, role) {
+    var promise = deferred();
+    role = userId + ':' + role;
+
+    db.query`
+        INSERT KeyValue ( "Key", Meta, Value )
+        VALUES ( ${id}, 'allowAccessFrom', ${role} );
+    `.then(result => {
+        if (result.rowsAffected.length && result.rowsAffected[0] > 0) {
+            promise.resolve(result.rowsAffected[0]);
+        } else {
+            promise.reject(400);
+        }
+    }).catch(err => {
+        console.log(err)
+        promise.reject(500, err);
+    });
+    return promise;
+};
+
+var removeRole = function(meta, id, userId, role) {
+    var promise = deferred();
+    role = userId + ':' + role;
+
+    db.query`
+        DELETE KeyValue
+         WHERE "Key" = ${id}
+           AND Meta = 'allowAccessFrom'
+           AND Value = ${role};
+    `.then(result => {
+        if (result.rowsAffected.length && result.rowsAffected[0] > 0) {
+            promise.resolve(result.rowsAffected[0]);
+        } else {
+            promise.reject(404);
+        }
+    }).catch(err => {
+        console.log(err)
+        promise.reject(500, err);
+    });
+    return promise;
+};
+
+router.get('/:meta/:id/roles', function(req, res) {
+    if (req.user === null) {
+        return res.status(401).send();
+    }
+
+    var meta = req.params.meta;
+    var id = req.params.id;
+
+    getRoles(meta, id, req.user.id).promise(function(result) {
+        res.send(JSON.stringify(result));
+    }, function(status, err) {
+        res.status(status).send(JSON.stringify(err));
+    });
+});
+
+router.post('/:meta/:id/roles/:role', function(req, res) {
+    if (req.user === null) {
+        return res.status(401).send();
+    }
+
+    var meta = req.params.meta;
+    var id = req.params.id;
+    var role = req.params.role;
+
+    addRole(meta, id, req.user.id, role).promise(function(result) {
+        res.send(JSON.stringify(result));
+    }, function(status, err) {
+        res.status(status).send(JSON.stringify(err));
+    });
+});
+
+router.delete('/:meta/:id/roles/:role', function(req, res) {
+    if (req.user === null) {
+        return res.status(401).send();
+    }
+
+    var meta = req.params.meta;
+    var id = req.params.id;
+    var role = req.params.role;
+
+    removeRole(meta, id, req.user.id, role).promise(function(result) {
         res.send(JSON.stringify(result));
     }, function(status, err) {
         res.status(status).send(JSON.stringify(err));
