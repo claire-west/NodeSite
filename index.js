@@ -37,6 +37,7 @@ app.post('/login', auth.login);
 
 app.use('/nosql', require('./js/nosql.js'));
 app.use('/role', require('./js/role.js'));
+app.use('/serpens', require('./js/serpens.js'));
 app.use('/go', require('./js/go.js'));
 app.use('/echo', require('./js/echo.js'));
 
