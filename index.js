@@ -29,7 +29,8 @@ app.use(cors([
     'http://www.claire-west.ca',
     'http://apps.claire-west.ca',
     'http://lib.claire-west.ca',
-    'http://localhost'
+    'http://localhost',
+    'http://serpens.house'
 ]));
 app.use('/logout', auth.logout);
 app.use(auth.middleware());
