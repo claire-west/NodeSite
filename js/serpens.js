@@ -40,8 +40,8 @@ var query = function(sql) {
     return promise;
 };
 
-var sqla = function(path, method, oArgs) {
-    var url = 'https://server.claire-west.ca/' + path;
+var sqla = function(oOptions, oArgs) {
+    var url = 'https://server.claire-west.ca/' + oOptions.path;
     if (oArgs) {
         var aArgs = [];
         for ( var prop in oArgs) {
@@ -54,11 +54,11 @@ var sqla = function(path, method, oArgs) {
 
     request({
         url: url,
-        method: method,
+        method: oOptions.method,
         headers: {
             auth: auth
         },
-        body: sql,
+        body: oOptions.body,
         strictSSL: false
     }, function (e, r, body) {
         if (e) {
@@ -81,7 +81,10 @@ var sqla = function(path, method, oArgs) {
 
 router.post('/login', function(req, res) {
     if (req.user) {
-        sqla('user', 'POST', {
+        sqla({
+            path: 'user',
+            method: 'POST'
+        }, {
             id: req.user.id,
             email: req.user.email,
             name: req.user.name
@@ -97,7 +100,10 @@ router.post('/login', function(req, res) {
 
 router.put('/rename', function(req, res) {
     if (req.user) {
-        sqla('user', 'PUT', {
+        sqla({
+            path: 'user',
+            method: 'PUT'
+        }, {
             id: req.user.id,
             display: req.body
         }).promise(function(result) {
