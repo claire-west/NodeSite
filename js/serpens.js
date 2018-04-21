@@ -172,37 +172,8 @@ router.post('/login/:token', function(req, res) {
     });
 });
 
-router.post('logout', function(req, res) {
+router.use('/logout', function(req, res) {
     req.session.destroy();
     res.clearCookie('discord-auth-token');
-    req.session['discord-auth-info'] = null;
     res.send();
 });
-
-router.put('/rename', function(req, res) {
-    if (req.user) {
-        sqla({
-            path: 'user',
-            method: 'PUT'
-        }, {
-            id: req.user.id,
-            display: req.body
-        }).promise(function(result) {
-            res.send(result);
-        }, function(status, err) {
-            res.status(status).json(err);
-        });
-    } else {
-        res.status(401).send();
-    }
-});
-
-// dynCore.modules().lib.cors({url: "https://node.claire-west.ca/serpens/rename", method:"PUT",data:"High Oracle Serpens Luna Vera",contentType:'text/plain'});
-
-// router.post('/test', function(req, res) {
-//     query(req.body).promise(function(result) {
-//         res.send(result);
-//     }, function(status, err) {
-//         res.status(status).json(err);
-//     });
-// });
