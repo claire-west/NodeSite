@@ -38,12 +38,12 @@ var auth = module.exports = {
         discord: function() {
             return function verify(req, res, next) {
                 if (req.discordUser) {
-                    next();
+                    return next();
                 }
 
                 if (req.session['discord-auth-info']) {
                     req.discordUser = req.session['discord-auth-info'];
-                    next();
+                    return next();
                 }
 
                 next();
