@@ -121,7 +121,7 @@ router.post('/login', function(req, res) {
             method: 'POST'
         }, {
             id: info.id,
-            name: info.username + '#' + info.discriminator
+            name: info.username + '#' + info.discriminator,
             avatar: info.avatar
         }).promise(function(result) {
             res.send(result);
