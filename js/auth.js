@@ -6,32 +6,49 @@ const clientId = process.env.G_CLIENT_ID;
 const client = new gauth.OAuth2(clientId, '', '');
 
 var auth = module.exports = {
-    middleware: function() {
-         return function verify(req, res, next) {
-            if (req.user) {
-                return next();
-            }
+    middleware: {
+        google: function() {
+             return function verify(req, res, next) {
+                if (req.user) {
+                    return next();
+                }
 
-            if (req.session['google-auth-info']) {
-                req.user = req.session['google-auth-info'];
-                return next();
-            }
+                if (req.session['google-auth-info']) {
+                    req.user = req.session['google-auth-info'];
+                    return next();
+                }
 
-            const token = req.cookies['google-auth-token'] || req.headers['auth'];
-            if (!token) {
-                req.user = null;
-                return next();
-            }
+                const token = req.cookies['google-auth-token'] || req.headers['auth'];
+                if (!token) {
+                    req.user = null;
+                    return next();
+                }
 
-            auth.verify(token).promise(function(info) {
-                req.session['google-auth-info'] = info;
-                req.user = info;
+                auth.verify(token).promise(function(info) {
+                    req.session['google-auth-info'] = info;
+                    req.user = info;
+                    next();
+                }, function(e) {
+                    req.user = null;
+                    next();
+                });
+            };
+        },
+
+        discord: function() {
+            return function verify(req, res, next) {
+                if (req.discordUser) {
+                    next();
+                }
+
+                if (req.session['discord-auth-info']) {
+                    req.discordUser = req.session['discord-auth-info'];
+                    next();
+                }
+
                 next();
-            }, function(e) {
-                req.user = null;
-                next();
-            });
-        };
+            }
+        }
     },
 
     login: function(req, res) {

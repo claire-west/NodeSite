@@ -3,6 +3,8 @@ const deferred = require('deferred');
 const db = require('./db.js');
 const request = require('request');
 const auth = process.env.SQLA_AUTH;
+const discordId = process.env.DISCORD_ID;
+const discordSecret = process.env.DISCORD_SECRET;
 
 router.post('/contact', function(req, res) {
     request.get('https://maker.ifttt.com/trigger/contact_entered/with/key/dzkxh5ZCb-Wv4xz18HytMw?value1=' + req.body.value1 + '&value2=' + req.body.value2);
@@ -79,23 +81,58 @@ var sqla = function(oOptions, oArgs) {
     return promise;
 };
 
+router.get('/login', function(req, res) {
+    if (req.discordUser) {
+        res.json(req.discordUser);
+        return;
+    }
+
+    if (req.session['discord-auth-info']) {
+        req.discordUser = req.session['discord-auth-info'];
+        res.json(req.discordUser);
+        return;
+    }
+
+    res.status(401).send();
+});
+
 router.post('/login', function(req, res) {
-    if (req.user) {
+    var promise = deferred();
+    console.log(req.body)
+    request.get({
+        url: 'https://discordapp.com/api/users/@me',
+        headers: {
+            Authorization: 'Bearer ' + req.body
+        }
+    }, function (e, r, body) {
+        console.log(e, body)
+        if (e) {
+            promise.reject(500, e);
+        } else if (r.statusCode !== 200) {
+            promise.reject(r.statusCode, body);
+        } else {
+            body = JSON.parse(body);
+            promise.resolve(body);
+        }
+    });
+
+    promise.promise(function(info) {
+        req.session['discord-auth-info'] = info;
         sqla({
             path: 'user',
             method: 'POST'
         }, {
-            id: req.user.id,
-            email: req.user.email,
-            name: req.user.name
+            id: info.id,
+            email: info.email,
+            name: info.name
         }).promise(function(result) {
-            res.send(result);
+            res.send(info);
         }, function(status, err) {
             res.status(status).json(err);
         });
-    } else {
-        res.status(401).send();
-    }
+    }, function(status, err) {
+        res.status(status).json(err);
+    });
 });
 
 router.put('/rename', function(req, res) {
@@ -115,6 +152,8 @@ router.put('/rename', function(req, res) {
         res.status(401).send();
     }
 });
+
+// dynCore.modules().lib.cors({url: "https://node.claire-west.ca/serpens/rename", method:"PUT",data:"High Oracle Serpens Luna Vera",contentType:'text/plain'});
 
 // router.post('/test', function(req, res) {
 //     query(req.body).promise(function(result) {
