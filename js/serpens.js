@@ -98,14 +98,12 @@ router.get('/login', function(req, res) {
 
 router.post('/login', function(req, res) {
     var promise = deferred();
-    console.log(req.body)
     request.get({
         url: 'https://discordapp.com/api/users/@me',
         headers: {
             Authorization: 'Bearer ' + req.body
         }
     }, function (e, r, body) {
-        console.log(e, body)
         if (e) {
             promise.reject(500, e);
         } else if (r.statusCode !== 200) {
@@ -123,10 +121,10 @@ router.post('/login', function(req, res) {
             method: 'POST'
         }, {
             id: info.id,
-            email: info.email,
-            name: info.name
+            name: info.username + '#' + info.discriminator
+            avatar: info.avatar
         }).promise(function(result) {
-            res.send(info);
+            res.send(result);
         }, function(status, err) {
             res.status(status).json(err);
         });
