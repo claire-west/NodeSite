@@ -5,6 +5,7 @@ const request = require('request');
 const auth = process.env.SQLA_AUTH;
 const discordId = process.env.DISCORD_ID;
 const discordSecret = process.env.DISCORD_SECRET;
+const swnbotKey = process.env.SWNBOT_API_KEY;
 
 router.post('/contact', function(req, res) {
     request.get('https://maker.ifttt.com/trigger/contact_entered/with/key/dzkxh5ZCb-Wv4xz18HytMw?value1=' + req.body.value1 + '&value2=' + req.body.value2);
@@ -47,7 +48,9 @@ var sqla = function(oOptions, oArgs) {
     if (oArgs) {
         var aArgs = [];
         for ( var prop in oArgs) {
-            aArgs.push(encodeURIComponent(prop) + '=' + encodeURIComponent(oArgs[prop]));
+            if (oArgs[prop]) {
+                aArgs.push(encodeURIComponent(prop) + '=' + encodeURIComponent(oArgs[prop]));
+            }
         }
         url += '?' + aArgs.join('&');
     }
@@ -117,25 +120,55 @@ router.post('/login/:token', function(req, res) {
     });
 
     promise.promise(function(info) {
-        sqla({
-            path: 'user',
-            method: 'POST'
-        }, {
-            id: info.id,
-            name: info.username + '#' + info.discriminator,
-            avatar: info.avatar
-        }).promise(function(result) {
-            if (result[0]) {
-                result = result[0];
+        request.get({
+            url: 'https://swnbot.itmebot.com/api/user/' + info.id,
+            headers: {
+                Authorization: swnbotKey
             }
-            req.session['discord-auth-info'] = result;
-            res.send(result);
-        }, function(status, err) {
-            res.status(status).json(err);
+        }, function (e, r, body) {
+            if (e) {
+                res.status(500).json(e);
+            } else {
+                if (r.statusCode === 200) {
+                    body = JSON.parse(body);
+                    info.name = body.userName;
+                    info.display = body.userNick;
+                    info.roles = JSON.stringify(body.userRoles);
+                }
+
+                sqla({
+                    path: 'user',
+                    method: 'POST'
+                }, {
+                    id: info.id,
+                    name: info.username + '#' + info.discriminator,
+                    display: info.display,
+                    avatar: info.avatar,
+                    roles: info.roles
+                }).promise(function(result) {
+                    if (result[0]) {
+                        result = result[0];
+                    }
+                    if (typeof(result.roles) === 'string') {
+                        result.roles = JSON.parse(result.roles);
+                    }
+
+                    req.session['discord-auth-info'] = result;
+                    res.send(result);
+                }, function(status, err) {
+                    res.status(status).json(err);
+                });
+            }
         });
     }, function(status, err) {
         res.status(status).json(err);
     });
+});
+
+router.post('logout', function(req, res) {
+    req.session.destroy();
+    res.clearCookie('discord-auth-token');
+    res.send();
 });
 
 router.put('/rename', function(req, res) {
