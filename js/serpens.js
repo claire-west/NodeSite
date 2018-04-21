@@ -117,7 +117,6 @@ router.post('/login/:token', function(req, res) {
     });
 
     promise.promise(function(info) {
-        req.session['discord-auth-info'] = info;
         sqla({
             path: 'user',
             method: 'POST'
@@ -126,6 +125,7 @@ router.post('/login/:token', function(req, res) {
             name: info.username + '#' + info.discriminator,
             avatar: info.avatar
         }).promise(function(result) {
+            req.session['discord-auth-info'] = result;
             res.send(result);
         }, function(status, err) {
             res.status(status).json(err);
