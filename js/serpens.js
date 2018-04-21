@@ -125,6 +125,9 @@ router.post('/login/:token', function(req, res) {
             name: info.username + '#' + info.discriminator,
             avatar: info.avatar
         }).promise(function(result) {
+            if (result[0]) {
+                result = result[0];
+            }
             req.session['discord-auth-info'] = result;
             res.send(result);
         }, function(status, err) {
