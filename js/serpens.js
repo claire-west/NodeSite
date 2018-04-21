@@ -66,6 +66,7 @@ var sqla = function(oOptions, oArgs) {
         if (e) {
             promise.reject(500, e);
         } else if (r.statusCode !== 200) {
+            console.log(r.statusCode, body)
             promise.reject(r.statusCode, body);
         } else {
             body = JSON.parse(body);
@@ -107,6 +108,7 @@ router.post('/login', function(req, res) {
         if (e) {
             promise.reject(500, e);
         } else if (r.statusCode !== 200) {
+            console.log(r.statusCode, body)
             promise.reject(r.statusCode, body);
         } else {
             body = JSON.parse(body);
