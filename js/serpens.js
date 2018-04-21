@@ -97,12 +97,12 @@ router.get('/login', function(req, res) {
     res.status(401).send();
 });
 
-router.post('/login', function(req, res) {
+router.post('/login/:token', function(req, res) {
     var promise = deferred();
     request.get({
         url: 'https://discordapp.com/api/users/@me',
         headers: {
-            Authorization: 'Bearer ' + req.body
+            Authorization: 'Bearer ' + req.params.token
         }
     }, function (e, r, body) {
         if (e) {
