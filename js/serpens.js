@@ -2,6 +2,7 @@ const router = module.exports = require('express').Router();
 const deferred = require('deferred');
 const db = require('./db.js');
 const request = require('request');
+const emoji = require('node-emoji');
 const auth = process.env.SQLA_AUTH;
 const discordId = process.env.DISCORD_ID;
 const discordSecret = process.env.DISCORD_SECRET;
@@ -87,13 +88,13 @@ var sqla = function(oOptions, oArgs) {
 
 router.get('/login', function(req, res) {
     if (req.discordUser) {
-        res.json(req.discordUser);
+        res.json(JSON.parse(emoji.emojify(JSON.stringify(req.discordUser))));
         return;
     }
 
     if (req.session['discord-auth-info']) {
         req.discordUser = req.session['discord-auth-info'];
-        res.json(req.discordUser);
+        res.json(JSON.parse(emoji.emojify(JSON.stringify(req.discordUser))));
         return;
     }
 
@@ -124,13 +125,15 @@ router.post('/login/:token', function(req, res) {
             url: 'https://swnbot.itmebot.com/api/user/' + info.id,
             headers: {
                 Authorization: swnbotKey
-            }
+            },
+            encoding: 'utf8',
+            gzip: true
         }, function (e, r, body) {
             if (e) {
                 res.status(500).json(e);
             } else {
                 if (r.statusCode === 200) {
-                    body = JSON.parse(body);
+                    body = JSON.parse(emoji.unemojify(body));
                     info.name = body.userName;
                     info.display = body.userNick;
                     info.roles = JSON.stringify(body.userRoles);
@@ -152,9 +155,13 @@ router.post('/login/:token', function(req, res) {
                     if (typeof(result.roles) === 'string') {
                         result.roles = JSON.parse(result.roles);
                     }
+                    if (result.avatar) {
+                        result.avatar = 'https://cdn.discordapp.com/avatars/' + result.id + '/' + result.avatar + '.png?size=128'
+                    }
 
                     req.session['discord-auth-info'] = result;
-                    res.send(result);
+
+                    res.send(JSON.parse(emoji.emojify(JSON.stringify(result))));
                 }, function(status, err) {
                     res.status(status).json(err);
                 });
@@ -168,6 +175,7 @@ router.post('/login/:token', function(req, res) {
 router.post('logout', function(req, res) {
     req.session.destroy();
     res.clearCookie('discord-auth-token');
+    req.session['discord-auth-info'] = null;
     res.send();
 });
 
