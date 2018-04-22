@@ -42,7 +42,7 @@ app.use('/role', require('./js/role.js'));
 app.use('/serpens', require('./js/serpens.js'));
 app.use('/go', require('./js/go.js'));
 app.use('/echo', require('./js/echo.js'));
-// app.use('/', require('./js/default.js'));
+app.use('/', require('./js/default.js'));
 
 app.listen(app.get('port'), function() {
     console.log('Node app is running on port', app.get('port'));
