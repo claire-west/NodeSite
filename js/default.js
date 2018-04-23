@@ -21,12 +21,23 @@ var newsRedirect = function(req, res, id) {
     res.send(html);
 }
 
+var docsRedirect = function(req, res, id) {
+    var url = 'http://serpens.house/#docs/' + id;
+    var html = fs.readFileSync('html/serpens-docs-redirect.html', 'utf-8');
+    html = applyTemplate(html, {
+        url: url
+    });
+    res.setHeader('content-type', 'text/html');
+    res.send(html);
+}
+
 router.use('/*', function(req, res, next) {
     var host = req.get('host');
     var args = req.params[0].split('/');
-    if (host === 'news.serpens.house' ||
-        host === 'server.claire-west.ca:5000') {
+    if (host === 'news.serpens.house') {
         newsRedirect(req, res, args[0]);
+    } else if (host === 'docs.serpens.house') {
+        docsRedirect(req, res, args[0]);
     } else {
         next();
     }
