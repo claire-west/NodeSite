@@ -13,7 +13,7 @@ var applyTemplate = function(string, args) {
 
 var newsRedirect = function(req, res, id) {
     var url = 'http://serpens.house/#news/' + id;
-    var html = fs.readFileSync("html/serpens-news-redirect.html", "utf-8");
+    var html = fs.readFileSync('html/serpens-news-redirect.html', 'utf-8');
     html = applyTemplate(html, {
         url: url
     });

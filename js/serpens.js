@@ -19,7 +19,7 @@ var query = function(sql) {
     var promise = deferred();
 
     request.post({
-        url: 'https://server.claire-west.ca/query',
+        url: 'https://aws.claire-west.ca/query',
         headers: {
             auth: auth
         },
@@ -45,7 +45,7 @@ var query = function(sql) {
 };
 
 var sqla = function(oOptions, oArgs) {
-    var url = 'https://server.claire-west.ca/' + oOptions.path;
+    var url = 'https://aws.claire-west.ca/' + oOptions.path;
     if (oArgs) {
         var aArgs = [];
         for ( var prop in oArgs) {
