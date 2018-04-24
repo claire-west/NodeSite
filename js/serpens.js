@@ -87,14 +87,59 @@ var sqla = function(oOptions, oArgs) {
 };
 
 router.get('/login', function(req, res) {
-    if (req.discordUser) {
-        res.json(JSON.parse(emoji.emojify(JSON.stringify(req.discordUser))));
-        return;
-    }
-
     if (req.session['discord-auth-info']) {
         req.discordUser = req.session['discord-auth-info'];
-        res.json(JSON.parse(emoji.emojify(JSON.stringify(req.discordUser))));
+    }
+
+    if (req.discordUser) {
+        var info = req.discordUser;
+        request.get({
+            url: 'https://swnbot.itmebot.com/api/user/' + info.id,
+            headers: {
+                Authorization: swnbotKey
+            },
+            encoding: 'utf8',
+            gzip: true
+        }, function (e, r, body) {
+            if (e) {
+                res.status(500).json(e);
+            } else {
+                if (r.statusCode === 200) {
+                    body = JSON.parse(emoji.unemojify(body));
+                    info.name = body.userName;
+                    info.display = body.userNick;
+                    info.roles = JSON.stringify(body.userRoles);
+                }
+
+                sqla({
+                    path: 'user',
+                    method: 'POST'
+                }, {
+                    id: info.id,
+                    name: info.username + '#' + info.discriminator,
+                    display: info.display,
+                    avatar: info.avatar,
+                    roles: info.roles
+                }).promise(function(result) {
+                    if (result[0]) {
+                        result = result[0];
+                    }
+                    if (typeof(result.roles) === 'string') {
+                        result.roles = JSON.parse(result.roles);
+                    }
+                    if (result.avatar) {
+                        result.avatar = 'https://cdn.discordapp.com/avatars/' + result.id + '/' + result.avatar + '.png?size=128'
+                    }
+
+                    req.session['discord-auth-info'] = result;
+
+                    res.send(JSON.parse(emoji.emojify(JSON.stringify(result))));
+                }, function(status, err) {
+                    res.status(status).json(err);
+                });
+            }
+        });
+
         return;
     }
 

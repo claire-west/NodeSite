@@ -22,7 +22,7 @@ var newsRedirect = function(req, res, id) {
 }
 
 var docsRedirect = function(req, res, id) {
-    var url = 'http://serpens.house/#docs/' + id;
+    var url = 'http://serpens.house/#doc-view/' + id;
     var html = fs.readFileSync('html/serpens-docs-redirect.html', 'utf-8');
     html = applyTemplate(html, {
         url: url
