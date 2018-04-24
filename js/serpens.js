@@ -113,7 +113,7 @@ router.get('/login', function(req, res) {
 
                 sqla({
                     path: 'user',
-                    method: 'POST'
+                    method: 'PUT'
                 }, {
                     id: info.id,
                     name: info.username + '#' + info.discriminator,
@@ -128,7 +128,7 @@ router.get('/login', function(req, res) {
                         result.roles = JSON.parse(result.roles);
                     }
                     if (result.avatar) {
-                        result.avatar = 'https://cdn.discordapp.com/avatars/' + result.id + '/' + result.avatar + '.png?size=128'
+                        result.avatarUrl = 'https://cdn.discordapp.com/avatars/' + result.id + '/' + result.avatar + '.png?size=128'
                     }
 
                     req.session['discord-auth-info'] = result;
@@ -201,7 +201,7 @@ router.post('/login/:token', function(req, res) {
                         result.roles = JSON.parse(result.roles);
                     }
                     if (result.avatar) {
-                        result.avatar = 'https://cdn.discordapp.com/avatars/' + result.id + '/' + result.avatar + '.png?size=128'
+                        result.avatarUrl = 'https://cdn.discordapp.com/avatars/' + result.id + '/' + result.avatar + '.png?size=128'
                     }
 
                     req.session['discord-auth-info'] = result;
