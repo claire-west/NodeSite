@@ -21,7 +21,7 @@
         "uuid": "3.1.0",
         "request": "2.85.0",
         "node-emoji": "1.8.1",
-        "bbcode-parser": "1.0.10"
+        "ya-bbcode": "1.0.4"
     },
     "repository": {
         "type": "git",

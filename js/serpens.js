@@ -2,11 +2,65 @@ const router = module.exports = require('express').Router();
 const deferred = require('deferred');
 const db = require('./db.js');
 const request = require('request');
+const yabbcode = require('ya-bbcode');
+const bbcode = new yabbcode();
 const emoji = require('node-emoji');
 const auth = process.env.SQLA_AUTH;
 const discordId = process.env.DISCORD_ID;
 const discordSecret = process.env.DISCORD_SECRET;
 const swnbotKey = process.env.SWNBOT_API_KEY;
+
+bbcode.registerTag('ol', {
+    type: 'replace', open: '<ol>', close: '</ol>'
+});
+bbcode.registerTag('ul', {
+    type: 'replace', open: '<ul>', close: '</ul>'
+});
+bbcode.registerTag('li', {
+    type: 'replace', open: '<li>', close: '</li>'
+});
+bbcode.registerTag('size', {
+    type: 'content',
+    replace: (attr, content) => {
+        if(!content){
+            return '';
+        }
+        content = content.trim();
+        attr = attr - 3;
+        var size = 100 + 20 * attr;
+        return `<span style="font-size: ${size}%;">${content}</span>`;
+    }
+});
+bbcode.registerTag('left', {
+    type: 'replace', open: '<p class="text-left">', close: '</p>'
+});
+bbcode.registerTag('center', {
+    type: 'replace', open: '<p class="text-center">', close: '</p>'
+});
+bbcode.registerTag('right', {
+    type: 'replace', open: '<p class="text-right">', close: '</p>'
+});
+bbcode.registerTag('img', {
+    type: 'content',
+    replace: (attr, content) => {
+        if(!content){
+            return '';
+        }
+        if (attr) {
+            var dimensions = attr.split('x');
+            var width = dimensions[0];
+            var height = dimensions[1];
+            if (!isNaN(Number(width))) {
+                width = width + 'px';
+            }
+            if (!isNaN(Number(height))) {
+                height = height + 'px';
+            }
+            return `<img src="${content}" style="max-width: ${width};max-height: ${height};" />`;
+        }
+        return `<img src="${content}" />`;
+    }
+});
 
 router.post('/contact', function(req, res) {
     request.get('https://maker.ifttt.com/trigger/contact_entered/with/key/dzkxh5ZCb-Wv4xz18HytMw?value1=' + req.body.value1 + '&value2=' + req.body.value2);
@@ -85,6 +139,112 @@ var sqla = function(oOptions, oArgs) {
 
     return promise;
 };
+
+var roleIDs = {
+    serpens: '435452473608503306',
+    mod: '434800155582005251',
+    admin: '434800365301399572'
+};
+
+var isSerpens = function(req, res) {
+    var roles = req.discordUser.roles;
+    if (!roles) {
+        res.status(401).send();
+        return false;
+    }
+    for (var i = 0; i < roles.length; i++) {
+        if (roles[i].roleID === roleIDs.serpens) {
+            return true;
+        }
+    }
+    res.status(403).send();
+    return false;
+};
+
+router.get('/doc', function(req, res) {
+    res.status(404).send();
+});
+
+router.get('/doc/:doc_id', function(req, res) {
+    if (!req.discordUser) {
+        res.status(401).send();
+        return;
+    }
+
+    if (isSerpens(req, res)) {
+        sqla({
+            path: 'document',
+            method: 'GET'
+        }, {
+            doc_id: req.params.doc_id
+        }).promise(function(result) {
+            if (result[0]) {
+                result = result[0];
+            }
+
+            result.html = bbcode.parse(result.content);
+            res.send(result);
+        }, function(status, err) {
+            res.status(status).json(err);
+        });
+    }
+});
+
+router.post('/doc', function(req, res) {
+    if (!req.discordUser) {
+        res.status(401).send();
+        return;
+    }
+
+    if (isSerpens(req, res)) {
+        sqla({
+            path: 'document',
+            method: 'POST',
+            body: req.body.content
+        }, {
+            doc_id: req.body.doc_id,
+            title: req.body.title,
+            owner: req.discordUser.id
+        }).promise(function(result) {
+            if (result[0]) {
+                result = result[0];
+            }
+
+            result.html = bbcode.parse(result.content);
+            res.send(result);
+        }, function(status, err) {
+            res.status(status).json(err);
+        });
+    }
+});
+
+router.put('/doc', function(req, res) {
+    if (!req.discordUser) {
+        res.status(401).send();
+        return;
+    }
+
+    if (isSerpens(req, res)) {
+        sqla({
+            path: 'document',
+            method: 'PUT',
+            body: req.body.content
+        }, {
+            doc_id: req.body.doc_id,
+            title: req.body.title,
+            owner: req.discordUser.id
+        }).promise(function(result) {
+            if (result[0]) {
+                result = result[0];
+            }
+
+            result.html = bbcode.parse(result.content);
+            res.send(result);
+        }, function(status, err) {
+            res.status(status).json(err);
+        });
+    }
+});
 
 router.get('/login', function(req, res) {
     if (req.session['discord-auth-info']) {
