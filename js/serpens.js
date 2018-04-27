@@ -109,7 +109,24 @@ var isSerpens = function(req, res) {
 };
 
 router.get('/doc', function(req, res) {
-    res.status(404).send();
+    if (!req.discordUser) {
+        res.status(401).send();
+        return;
+    }
+
+    if (isSerpens(req, res)) {
+        sqla({
+            path: 'doc_list',
+            method: 'GET'
+        }).promise(function(result) {
+            for (var i = 0; i < result.length; i++) {
+                result[i].display = emoji.emojify(result[i].display);
+            }
+            res.send(result);
+        }, function(status, err) {
+            res.status(status).json(err);
+        });
+    }
 });
 
 router.get('/doc/:doc_id', function(req, res) {
